@@ -1,1 +1,36 @@
+Pseudodobulk aggregation was performed using the following reference https://satijalab.org/seurat/reference/aggregateexpression
+
+#Load library
 library (Seurat)
+
+#Load GSE241142 Seurat object 
+endo <- readRDS("GSE241142_endothelium_with_condition.rds")
+
+#Review the number of endothelial nuclei from each sample and condition
+colnames(endo@meta.data)
+table(endo$sample, endo$condition)
+unique(endo@meta.data[, c("sample", "condition")])
+
+#RNA counts from endothelial nuclei belonging to the same biological sample are aggregated to generate one 
+pseudobulk expression profile per sample
+pb_list <- AggregateExpression(object=endo, assays = "RNA", group.by="sample", return.seurat=FALSE)
+pb_counts <- pb_list$RNA
+dim(pb_counts)
+colnames(pb_counts)
+
+#Sample metadata generation
+sample_metadata <- unique(endo@meta.data[, c ("sample", "condition")])
+sample_metadata <- sample_metadata[match(colnames(pb_counts), sample_metadata$sample),]
+sample_metadata
+
+#Number of biological samples in each condition confirmation 
+table(sample_metadata$condition)
+
+#Output directory creation
+dir.create("DIABETES_PSEUDOBULK", showWarnings=FALSE)
+
+#Save Pseudobulk count matrix 
+saveRDS(pb_counts, "DIABETES_PSEUDOBULK/GSE241142_endothelial_pseudobulk_counts.rds")
+
+#Save metadata 
+write.csv(sample_metadata, "DIABETES_PSEUDOBULK/GSE241142_endothelial_sample_metadata.csv", row.names= FALSE)
