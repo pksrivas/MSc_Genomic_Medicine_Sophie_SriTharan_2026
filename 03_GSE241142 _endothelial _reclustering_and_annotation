@@ -1,0 +1,60 @@
+#Script continuation from the endothelial subset generated in Script 02.
+
+#The object 'endo' contains the 495 endothelial nuclei
+>library(Seurat)
+>library(dplyr)
+
+#Endothelial-specific normalisation
+>DefaultAssay(endo) <- "RNA"
+endo <- NormalizeData(endo, normalization.method = "LogNormalize", scale.factor=10000)
+
+#Identify variable genes
+endo <- FindVariableFeatures(endo, selection.method= "vst", nfeatures= 2000)
+
+#Scale expression data
+endo <- ScaleData(endo, features= VariableFeatures(endo))
+
+#Principal component analysis
+>endo <- RunPCA(endo, npcs=50)
+
+#Construct nearest-neighbour graph
+endo <- FindNeighbors(endo, dims= 1:20, k.param=20)
+
+#Reclustering of endothelial nuclei
+endo <- FindClusters(endo, resolution= 0.4)
+
+#UMAP visualisation
+endo <- RunUMAP(endo, dims= 1:20, n.neighbors = 30, min.dist= 0.3, seed.use=42)
+
+DimPlot(endo, reduction="umap", label= TRUE)
+
+#Check endothelial cluster sizes
+table(Idents(endo))
+
+#Assign endothelial subtype labels
+#Clusters 0 and 3 were both classified as capillary endothelial cells
+
+endo$endo_subtype <- as.character(Idents(endo))
+
+endo$endo_subtype <- recode(endo$endo_subtype, "0" = "capillary", "1" = "arterial", "2" = "tip", "3"= "capillary", "4" = "prolif", "5" = "venous")
+endo$endo_subtype <- factor(endo$endo_subtype, levels=c("capillary","arterial", "tip","prolif", "venous"))
+
+Idents(endo) <- "endo_subtype"
+
+#Confirm final endothelial subtype numbers
+table(endo$endo_subtype)
+
+#Visualise annotated endothelial subtypes
+DimPlot(endo, reduction= "umap", group.by="endo_subtype",label=TRUE)
+
+#Identify genes enriched within each endothelial subtype
+DefaultAssay(endo) <- 'RNA'
+Idents(endo) <- "endo_subtype"
+
+endo_markers <- FindAllMarkers(endo, only.pos= TRUE)
+
+#Save endothelial subtype marker results
+write.csv(endo_markers, "ENDO_outputs/endo_FinalAllMarkers.csv", row.names=FALSE)
+
+#Save annotated endothelial Seurat object
+SaveRDS(endo, "ENDO_outputs/GSE241142_endothelial_annotated.rds")
