@@ -1,0 +1,46 @@
+#GSE241142 endothelial identification
+library(Seurat)
+library(dplyr)
+
+#Load integrated GSE241142 object
+integrated <- readRDS("GSE241142_integrated.rds")
+
+#Load gene annotation
+gene_annot <- read.csv("GSE241142_S1_all_gene.csv.gz", check.names=FALSE)
+
+#Set whole-dataset cluster identities
+Idents(integrated) <- "integrated_snn_res.0.4"
+
+#Endothelial marker genes
+endothelial_markers <- c("Cldn5", "Pecam1", "Flt1", "Kdr", "Emcn", "Klf2")
+
+#Map gene symbols to Ensembl IDs used in the Seurat object
+marker_ids <- gene_annot %>% filter(gene_name %>% endothelial_markers) %>% select(gene_id, gene_name)
+marker_ids
+
+#Confirm marker genes are represented in the dataset
+marker_ids$gene_id %>% rownames(integrated)
+
+#Examine endothelial marker expression across whole-dataset clusters
+DefaultAssay(integrated) <- "RNA"
+DotPlot(integrated, features= marker_ids$gene_id) 
+RotatedAxis()
+
+#Confirm Cluster 18 size
+table(Idents(integrated))
+sum(integrated$integrated_snn.res.0.4== 18)
+
+
+#Extract endothelial cluster
+endo <- subset(integrated, idents= 18)
+
+#Confirm endothelial subset size
+ncol(endo)
+
+#Expected: 495 nuclei
+
+#Save endothelial subset for downstream reclustering 
+dir.create("Endo_outputs", showWarnings = FALSE)
+
+saveRDS(endo, "ENDO_outputs/GSE241142_endothelial_cluster18.rds")
+
