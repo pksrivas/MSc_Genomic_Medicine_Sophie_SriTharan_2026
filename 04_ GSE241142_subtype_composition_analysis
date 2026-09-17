@@ -1,0 +1,117 @@
+library(Seurat)
+library(dplyr)
+library(ggplot2)
+
+#Load endothelial subset
+endo <- readRDS("Endo_outputs/GSE241142_endothelial_cluster18.rds")
+
+# Use RNA assay
+DefaultAssay(endo) <- "RNA"
+
+# Normalise endothelial expression data
+endo <- NormalizeData(endo,normalization.method = "LogNormalize",
+  scale.factor = 10000)
+
+# Identify variable features
+endo <- FindVariableFeatures(endo,selection.method = "vst",nfeatures = 2000)
+
+# Scale expression data
+endo <- ScaleData(endo,verbose = FALSE)
+
+# PCA
+endo <- RunPCA(endo,npcs = 50,verbose = FALSE)
+
+# Nearest-neighbour graph construction
+endo <- FindNeighbors(endo,dims = 1:20,k.param = 20)
+
+# Cluster endothelial nuclei
+endo <- FindClusters(endo,resolution = 0.4)
+
+# UMAP visualisation
+endo <- RunUMAP(endo, dims = 1:20,n.neighbors = 30,min.dist = 0.3,seed.use = 42)
+
+# Endothelial subtypes assignment 
+endo$endo_subtype <- dplyr::recode(as.character(endo$seurat_clusters),
+  "0" = "Capillary",
+  "1" = "Arterial",
+  "2" = "Tip",
+  "3" = "Capillary",
+  "4" = "Proliferative",
+  "5" = "Venous")
+
+# Endothelial subtype identities
+Idents(endo) <- "endo_subtype"
+
+# Number of nuclei assigned to each subtype
+table(endo$endo_subtype)
+
+# Endothelial subtypes visualisation
+p_umap <- DimPlot(endo, reduction = "umap", group.by = "endo_subtype",label = TRUE)
+
+p_umap
+
+# Endothelial subtype marker genes identification 
+endo_markers <- FindAllMarkers(endo, only.pos = TRUE)
+
+# Marker results
+write.csv(endo_markers,
+  "Endo_outputs/endo_FindAllMarkers.csv",
+  row.names = FALSE)
+
+# Endothelial subtype composition
+
+# Count nuclei in each endothelial subtype
+subtype_counts <- as.data.frame(table(endo$endo_subtype))
+
+colnames(subtype_counts) <- c("Subtype","Count")
+
+# Endothelial nuclei percentage
+subtype_counts$Percentage <-subtype_counts$Count /sum(subtype_counts$Count) * 100
+
+# Subtype counts and percentages
+subtype_counts
+
+# Set subtype order
+subtype_counts$Subtype <- factor(
+  subtype_counts$Subtype,
+  levels = c(
+    "Capillary",
+    "Arterial",
+    "Tip",
+    "Proliferative",
+    "Venous"))
+
+# Endothelial gene subtype composition plot
+p_composition <- ggplot(
+  subtype_counts,
+  aes(
+    x = "Endothelial nuclei",
+    y = Count,
+    fill = Subtype)) +
+  
+  geom_col(width = 0.7) +
+  geom_text(aes(label = Count),
+    position = position_stack(vjust = 0.5),
+    size = 4) 
++
+  labs(x = NULL,
+    y = "Number of nuclei",
+    fill = "Endothelial subtype") +
+  
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+    axis.ticks.x = element_blank())
+
+# Composition plot
+p_composition
+
+# Save composition figure
+ggsave("Figure_Z_endothelial_subtype_composition.png",
+plot = p_composition,
+width = 6,
+height = 7,
+dpi = 300)
+
+# Save annotated endothelial Seurat object
+saveRDS(endo,
+  "Endo_outputs/GSE241142_endothelial_annotated.rds")
