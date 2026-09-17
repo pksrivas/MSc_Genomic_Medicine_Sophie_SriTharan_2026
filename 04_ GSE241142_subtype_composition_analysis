@@ -84,9 +84,7 @@ subtype_counts$Subtype <- factor(
 # Endothelial gene subtype composition plot
 p_composition <- ggplot(
   subtype_counts,
-  aes(
-    x = "Endothelial nuclei",
-    y = Count,
+  aes(x = "Endothelial nuclei",y = Count,
     fill = Subtype)) +
   
   geom_col(width = 0.7) +
