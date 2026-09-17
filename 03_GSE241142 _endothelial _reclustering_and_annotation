@@ -44,7 +44,7 @@ Idents(endo) <- "endo_subtype"
 #Confirm final endothelial subtype numbers
 table(endo$endo_subtype)
 
-#Visualise annotated endothelial subtypes
+#annotated endothelial subtypes visualisation
 DimPlot(endo, reduction= "umap", group.by="endo_subtype",label=TRUE)
 
 #Identify genes enriched within each endothelial subtype
