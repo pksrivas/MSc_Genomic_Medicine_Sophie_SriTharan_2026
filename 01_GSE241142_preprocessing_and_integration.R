@@ -80,7 +80,7 @@ integrated <- RunUMAP(integrated, dims=1:30, n.neighbors=30, min.dist=0.3, seed.
 DefaultAssay(integrated) <- "RNA"
 integrated <- NormalizeData(integrated, normalization.method="LogNormalize", scale.factor=10000, verbose=FALSE)
 
-#Final checks
+#Review
 dim(integrated)
 Assays(integrated)
 Reductions(integrated)
