@@ -1,3 +1,7 @@
+References used for Seurat is the following tutorial https://satijalab.org/seurat/articles/pbmc3k_tutorial.
+
+
+#Loaded packages
 library(Seurat)
 library(dplyr)
 library(ggplot2)
